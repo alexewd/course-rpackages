@@ -1,0 +1,404 @@
+From R code to R package
+========================================================
+author: Viliam Simko, FZI
+date: 19.11.2015
+transition: fade
+width: 1200
+height: 900
+autosize: false
+
+IPE-Akademie
+
+
+In this presentation
+========================================================
+
+### Make it right -- turn your R code into an R package
+- generate documentation using [Roxygen](http://roxygen.org/)
+- unit test your code with [testthat](https://cran.r-project.org/web/packages/testthat)
+- check coding style using [lintr](https://github.com/jimhester/lintr)
+- host it on [Github](https://github.com)
+- use continuous integration ([Travis-CI](https://travis-ci.org) -- free for OSS)
+- check code coverage ([Codecov](https://codecov.io) -- free for OSS)
+
+
+Why R Packages ?
+========================================================
+
+- fundamental units of shareable code
+- **package** = code, data, documentation, tests ...
+- 6000 pkgs available in CRAN <br/>
+  (**C**omprehensive **R** **A**rchive **N**etwork)
+- easy to share with others
+  - people know how to use pacakges
+  - easy to download and learn
+- useful even without sharing -- **conventions**
+  - saves time
+  - standardized tools $\rightarrow$ automation
+
+
+Where to start ?
+========================================================
+In your **RStudio**: <br/>
+  `File` $\rightarrow$
+  `New Project...` $\rightarrow$
+  `New Directory` $\rightarrow$
+  `R Package`
+
+**Dir Entry**   | **Purpose**
+----------------|------------
+`R/`            | all your R-code lives here
+`data/`         | all your data belongs to us
+`tests/`        | guess what ?
+`man/`          | generated docs, do not touch
+`NAMESPACE`     | do not touch either
+`DESCRIPTION`   | metadata
+`LICENSE`       | pick your favourite license
+`README.md`     | text for github
+`mypkg.Rproj`   | RStudio project configuration
+`.travis.yml`   | Travis-CI configuration file
+`.Rbuildignore` | RStudio build-related files
+`.gitignore`    | list of files to ignore by git
+
+***
+
+### Useful shortcuts
+- **CRTL+SHIFT+B** (rebuild pkg.)
+- **CRTL+SHIFT+D** (gen. docs)
+- **CRTL+SHIFT+T** (run all tests)
+- **CRTL+SHIFT+E** (check pkg.)
+
+
+Package metadata
+========================================================
+`DESCRIPTION` file contains metadata
+
+```
+Package: mypackage
+Title: What The Package Does (one line)
+Version: 0.1
+Author: John Doe
+Description: What the package does (paragraph)
+License: MIT License + file LICENSE
+LazyData: true
+Depends: R (>= 3.1.0)
+Imports: assertthat, zoo, ggplot2
+Suggests: testthat, dplyr (>= 0.3.0.1), lintr
+```
+... describes dependencies
+   $\rightarrow$ `library()`, `require()`, `source()` not used
+
+
+R code in your package
+========================================================
+
+- all R code lives in `R/`
+- **Bad approach:** all functions in one file
+- **Also Bad:** each function in a separate file
+- **Good:** large functions in separate files
+
+### Coding style
+- [Google's R Style Guide](https://google.github.io/styleguide/Rguide.xml)
+- Use **lintr** for checking style -- automagically
+
+### Documentation
+- document all functions using **roxygen** comments
+- add `@export`, `@import` and `@importFrom` to all functions
+- add examples using `@examples`
+
+
+Documentation
+========================================================
+- source code parsed with `roxygen` tool (**CTRL+SHIFT+D** in RStudio)
+- `roxygen` generates:
+  - `man/*.Rd` (manual pages)
+  - `NAMESPACE` file (from `@export`, `@import` and `@importFrom` directives)
+
+### Example
+```{r, eval=FALSE}
+#' Add together two numbers.
+#' @param x A number.
+#' @param y A number.
+#' @return The sum of \code{x} and \code{y}.
+#' @examples
+#' add(1, 1)
+#' add(10, 1)
+#' @export
+add <- function(x, y) {
+  x + y
+}
+```
+... this will produce  [**`man/add.Rd`**](http://r-pkgs.had.co.nz/screenshots/man-add.png) entry
+
+Unit testing
+========================================================
+- **`testhat`** package
+- all tests in `tests/testthat`
+- Run all tests from RStudio: **CTRL+SHIFT+T**
+
+***
+
+```{sh, eval=FALSE}
+$ ls tests/
+testthat/
+testthat.R
+
+$ ls tests/testthat/
+test-behaviour1.R
+test-behaviour2.R
+...
+```
+
+Unit testing (Example)
+========================================================
+```{r, eval=FALSE}
+context("some component")
+pdf(NULL) # suppress generating any PDFs
+
+test_that("Signal decomposition", {
+  sample32 %>% decompose_traffic %>%
+    .$coef %>% get_total_intervals %>%
+    expect_equal(6)
+})
+
+test_that("Plotting should work", {
+  expect_null( sample32 %>% plot_traffic )
+})
+
+test_that("Error for unsupported plot type", {
+  expect_error(
+    plot.biwavelet(some_wt, type = "dummy"),
+    regexp = "should be one of" )
+})
+```
+
+Unit testing (Success example)
+========================================================
+After pressing **CTRL+SHIFT+T** in RStudio
+```
+==> devtools::test()
+
+Loading biwavelet
+Loading required package: testthat
+biwavelet 0.17.11.6 loaded.
+Testing biwavelet
+lintr static code analysis : .
+Performance optimizations : ...................
+plot.biwavelet : ........
+Compute wavelet (wt.bases) : ................
+Significance of wavelet coherence (wtc.sig) : .....
+Significance of wavelet transform (wt.sig) : .......
+Cross-wavelet (xwt) : ....
+
+DONE
+```
+
+
+
+Static code analysis
+========================================================
+### Manually from command line
+```{r, eval=FALSE}
+install.packages("lintr")
+lintr::lint_package() # or single file: lint("R/myfile.R")
+```
+
+### Output In RStudio
+![sample lintr output](img/lintr-out.png)
+
+... some checks already built into RStudio (version > 0.99.206)
+
+
+Static code analysis (in tests)
+========================================================
+### Or automagically from unit tests
+```{r, eval=FALSE}
+# in file tests/testthat/lintr-style.R
+if (requireNamespace("lintr", quietly=TRUE)) {
+  context("lints")
+  test_that("Package Style", {
+    lintr::expect_lint_free()
+  })
+}
+```
+
+### Output in "Build" tab
+```
+1. Failure: Package Style ----------------------------------
+Not lint free
+R/RcppExports.R:23:11: style: Only use double-quotes.
+    .Call('biwavelet_rcpp_wt_bases_dog', PACKAGE = 'bi..
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+R/RcppExports.R:45:1: style: lines should not be more than 80 characters.
+    .Call('biwavelet_rcpp_wt_bases_morlet', PACKAGE = 'bi..
+...
+```
+
+
+R CMD check
+========================================================
+- **CRTL+SHIFT+E**
+- automatically checks your code for common problems
+- **over 50 individual checks**
+ - R code checks
+ - package structure
+ - data
+ - documentation
+ - demos
+ - compiled code (c++)
+ - tests
+ - ...
+
+
+Use github (or other git repo)
+========================================================
+- Create an account on https://github.com/
+- Create new git repository
+- Clone it locally
+- Fill `README.md` and pick a `LICENSE`
+- Commit/push your new shiny R pacakge
+- Use issue tracker
+- Use git branches
+
+### Fancy some badges?
+![Build status](img/badge-build-passing.png)
+![Codecov](img/badge-coverage-90.png)
+![CRAN Version](img/badge-cran-version.png)
+![CRAN Downloads](img/badge-cran-downloads.png)
+![Igor](img/badge-igor.png)
+
+Travis-CI -- Continuous integration
+========================================================
+type: section
+
+![Build passing](img/badge-build-passing.png)
+![Build failed](img/badge-build-failed.png)
+
+
+Travis-CI -- Continuous integration
+========================================================
+`README.md`
+```
+[![Build Status](https://travis-ci.org/vsimko/biwavelet.svg)](https://travis-ci.org/vsimko/biwavelet)
+```
+
+`.travis.yml`
+```
+language: r
+warnings_are_errors: true
+sudo: required
+cache: apt
+notifications:
+  email:
+    on_success: change
+    on_failure: change
+r_github_packages:
+  - jimhester/covr
+after_success:
+  - Rscript -e 'library(covr);codecov()'
+```
+
+Travis-CI -- Continuous integration
+========================================================
+ ![](img/travis-history.png)
+
+Travis-CI -- build failed
+========================================================
+[ ![](img/badge-build-failed.png)<br/>
+  ![](img/travis-faillog.png)
+](https://travis-ci.org/vsimko/biwavelet/builds/91442940)
+
+
+Travis-CI -- successful build
+========================================================
+[ ![](img/travis-success.png)
+](https://travis-ci.org/vsimko/biwavelet/builds/91868722)
+
+Code coverage
+========================================================
+type: section
+
+![Codecov 42%](img/badge-coverage-42.png)
+![Codecov 90%](img/badge-coverage-90.png)
+
+
+Codecov -- Typical R Project
+========================================================
+[ ![](img/codecov-example1.png)
+](https://codecov.io/github/vsimko/biwavelet)
+
+
+Codecov -- R sources
+========================================================
+[ ![](img/codecov-example-rsrc.png)
+](https://codecov.io/github/vsimko/biwavelet/R)
+
+
+Codecov -- visited lines
+========================================================
+[ ![](img/codecov-example-rfile.png)
+](https://codecov.io/github/vsimko/biwavelet/R/check.data.R)
+
+
+Some links
+========================================================
+- [R packages](http://r-pkgs.had.co.nz/) (online book)
+- [Advanced](http://adv-r.had.co.nz/) (online book)
+- [R Markdown — Dynamic Documents for R](http://rmarkdown.rstudio.com/)
+  (website)
+- [Analyses as Packages](http://rmflight.github.io/posts/2014/07/analyses_as_packages.html) (blog)
+- [lintr](https://github.com/jimhester/lintr) -- static code analysis for R
+- [shield.io](http://shields.io/)
+
+Conclusion and Future Work
+========================================================
+
+### Perhaps next time
+- Presentations using **Markdown** in **RStudio**
+- Contributing to existing CRAN packages
+- Reporducible research
+  - Sample datasets in your R package
+  - Data processing pipelines
+  - Writing papers
+- Profiling your code
+- Rcpp C/C++ integration
+- Coverity scan for C/C++ code -- https://scan.coverity.com/
+
+  ![Thank You](img/thankyou.png)
+
+
+Backup slides
+========================================================
+type: section
+
+
+Presentation in Markdown
+========================================================
+Markdown is designed to be **easy** to write and read
+
+### Excerpt from this presentation
+```
+ From R code to R package
+ ========================================
+ author: Viliam Simko, FZI
+ date: 19.11.2015
+ transition: fade
+ width: 1200
+ height: 800
+ autosize: false
+
+ Presentation in Markdown
+ ========================================
+ Markdown is designed to be **easy** to
+ write and read
+ ...
+```
+
+Useful functions
+========================================================
+`.onLoad()` and `.onAttach()`
+```{r, eval=FALSE}
+.onAttach <- function(libname, pkgname) {
+  packageStartupMessage("Welcome to my pkg")
+}
+```
