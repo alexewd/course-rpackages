@@ -2,7 +2,7 @@
  * This repository contains a presentation about R pacakges.
  * The presentations has been created and can be viewed in **RStudio**.
  * It can also be exported to HTML and PDF.
- * [This presentation is also published on RPubs](http://rpubs.com/vsimko/135156)
+ * [This presentation is also published on RPubs](http://rpubs.com/vsimko/135158)
 
 
 # How to install locally
