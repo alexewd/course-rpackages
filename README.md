@@ -6,6 +6,7 @@
 
 
 # How to install locally
- * Download and extract the ZIP to your local directory.
- * Open the file `Presentation.Rpres` inside RStudio and you'll see the markdown source of the presentation
- * Click the `Preview` icon in the editor or press `CTRL+SHIFT+K` to start the presentation
+ * `git clone` the current repository or
+ * download and extract the ZIP to your local directory
+ * open the file `Presentation.Rpres` inside RStudio and you'll see the markdown source of the presentation
+ * click the `Preview` icon in the editor or press `CTRL+SHIFT+K` to start the presentation
