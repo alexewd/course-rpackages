@@ -356,7 +356,7 @@ Conclusion and Future Work
 ### Perhaps next time
 - Presentations using **Markdown** in **RStudio**
 - Contributing to existing CRAN packages
-- Reporducible research
+- Reproducible research
   - Sample datasets in your R package
   - Data processing pipelines
   - Writing papers
